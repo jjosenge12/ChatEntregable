@@ -1,0 +1,16 @@
+tipos de mensaje ( que recibe el servidor)
+	0 desconexion
+	1 recibir datos del cliente
+	2 agregar sala
+	3 quitar sala
+	4 unirse a sala
+	5 salir de sala
+	6 recibir mensaje
+
+tipos de mensaje a cliente ( que recibe el cliente)
+	0 conexion
+	1 enviar datos al servidor
+	2 actualizar salas
+	3 unirse a sala
+	4 salir de sala
+	5 recibir mensaje
