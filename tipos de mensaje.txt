@@ -6,6 +6,7 @@ tipos de mensaje ( que recibe el servidor)
 	4 unirse a sala
 	5 salir de sala
 	6 recibir mensaje
+	7 pedir tiempos de sesion
 
 tipos de mensaje a cliente ( que recibe el cliente)
 	0 conexion
@@ -14,3 +15,4 @@ tipos de mensaje a cliente ( que recibe el cliente)
 	3 unirse a sala
 	4 salir de sala
 	5 recibir mensaje
+	6 recibir tiempos de sesion

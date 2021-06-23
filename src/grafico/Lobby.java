@@ -312,5 +312,25 @@ public class Lobby extends JFrame {
 		}
 		
 	}
+//
+//	public void verTiempoSesion(SalaChat salaChat) {
+//		int i=0;
+//		Sala sala=salas.get(i);
+//		while(true) {
+//			
+//		}
+//		
+//	}
+
+	public void recibirTiempos(MensajeACliente mensaje) {
+		Sala sala=mensaje.getSala();
+		int i=0;
+		SalaChat salaChat=salasAbiertas.get(i);
+		while(!salaChat.getNombreSala().equals(sala.getNombreSala())) {
+			i++;
+			salaChat=salasAbiertas.get(i);
+		}
+		salaChat.mostrarTiempos(mensaje.getMensaje());
+	}
 
 }

@@ -4,14 +4,21 @@ package grafico;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -20,19 +27,16 @@ import javax.swing.border.EmptyBorder;
 import paquete.Cliente;
 import paquete.MensajeAServidor;
 import paquete.Sala;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-
 
 public class SalaChat extends JFrame {
 
 	private static final long serialVersionUID = -4289720049025252601L;
 	private JPanel contentPane;
 	private JTextField textFieldEscrituraMensaje;
-	JTextArea textArea;
-	Cliente cliente;
-	String nombre;
-	JButton btnEnviar;
+	private JTextArea textArea;
+	private Cliente cliente;
+	private String nombre;
+	private JButton btnEnviar;
 	private Sala sala;
 
 	/**
@@ -57,7 +61,7 @@ public class SalaChat extends JFrame {
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 
-		JMenu menuListaConexion = new JMenu("Conexion");
+		JMenu menuListaConexion = new JMenu("Opciones");
 		menuBar.add(menuListaConexion);
 
 		JMenuItem menuItemSalirSala = new JMenuItem("Salir de la sala");
@@ -67,6 +71,22 @@ public class SalaChat extends JFrame {
 			}
 
 		});
+
+		JMenuItem mntmNewMenuItem = new JMenuItem("Ver tiempos de sesion");
+		menuListaConexion.add(mntmNewMenuItem);
+		mntmNewMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				verTiemposSesion();
+			}
+		});
+
+		JMenuItem mntmNewMenuItem_1 = new JMenuItem("Descargar conversacion");
+		mntmNewMenuItem_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				guardarConversacion();
+			}
+		});
+		menuListaConexion.add(mntmNewMenuItem_1);
 		menuListaConexion.add(menuItemSalirSala);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -81,7 +101,7 @@ public class SalaChat extends JFrame {
 		textFieldEscrituraMensaje.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				if(e.getKeyCode()==10) {
+				if (e.getKeyCode() == 10) {
 					enviarMensaje();
 				}
 			}
@@ -93,7 +113,7 @@ public class SalaChat extends JFrame {
 		btnEnviar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				enviarMensaje();
-				
+
 			}
 
 		});
@@ -105,18 +125,52 @@ public class SalaChat extends JFrame {
 		setVisible(true);
 	}
 
+	protected void guardarConversacion() {
+		JFileChooser fileChooser = new JFileChooser();
+		int seleccion = fileChooser.showOpenDialog(this);
+
+		if (seleccion == JFileChooser.APPROVE_OPTION) {
+			File ruta = fileChooser.getSelectedFile();
+			String texto = textArea.getText();
+
+			FileWriter fr = null;
+			PrintWriter pw = null;
+
+			try {
+				fr = new FileWriter(ruta+".txt");
+				pw = new PrintWriter(fr);
+				pw.print(texto);
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (fr != null) {
+					try {
+						fr.close();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+
+	protected void verTiemposSesion() {
+		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 7);
+		cliente.enviarMensaje(msj);
+	}
+
 	protected void cerrarSala() {
 		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 5);
 		cliente.enviarMensaje(msj);
 	}
 
 	private void enviarMensaje() {
-		String msj =textFieldEscrituraMensaje.getText();
-		if(!msj.equals("")) {
+		String msj = textFieldEscrituraMensaje.getText();
+		if (!msj.equals("")) {
 			msj = cliente.getNombre() + ":" + textFieldEscrituraMensaje.getText();
 			MensajeAServidor msjAServidor = new MensajeAServidor(msj, sala, 6);
 			cliente.enviarMensaje(msjAServidor);
-			textFieldEscrituraMensaje.setText("");			
+			textFieldEscrituraMensaje.setText("");
 		}
 
 	}
@@ -124,8 +178,6 @@ public class SalaChat extends JFrame {
 	public String getNombreSala() {
 		return nombre;
 	}
-
-
 
 	@Override
 	public int hashCode() {
@@ -159,6 +211,10 @@ public class SalaChat extends JFrame {
 
 	public void mostrarMensaje(String mensaje) {
 		textArea.setText(textArea.getText() + "\n" + mensaje);
+	}
+
+	public void mostrarTiempos(String mensaje) {
+		JOptionPane.showMessageDialog(this, mensaje, "Tiempos de sesion", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 }

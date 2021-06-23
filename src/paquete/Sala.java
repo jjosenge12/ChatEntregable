@@ -8,8 +8,8 @@ import java.util.List;
 public class Sala implements Serializable {
 
 	private static final long serialVersionUID = 1238067019847995537L;
-	String nombreSala;
-	List<String> usuariosConectados;
+	private String nombreSala;
+	private List<String> usuariosConectados;
 
 	public Sala(String nombreSala) {
 		this.nombreSala = nombreSala;

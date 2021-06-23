@@ -46,12 +46,19 @@ public class HiloCliente extends Thread{
 				case 5://5: el cliente recibio un mensaje en alguna de sus salas abiertas
 					recibirMensaje(mensaje);
 					break;
+				case 6:
+					recibirTiempos(mensaje);
+					break;
 				}
 			}
 		} catch (IOException | ClassNotFoundException e) {
 			System.out.println("Error en lectura de mensaje en hiloCliente");	
 			e.printStackTrace();
 		}
+	}
+
+	private void recibirTiempos(MensajeACliente mensaje) {
+		ventana.recibirTiempos(mensaje);
 	}
 
 	private void recibirMensaje(MensajeACliente mensaje) {
