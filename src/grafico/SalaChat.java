@@ -20,6 +20,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
@@ -121,7 +122,10 @@ public class SalaChat extends JFrame {
 
 		textArea = new JTextArea();
 		textArea.setEditable(false);
-		contentPane.add(textArea, BorderLayout.CENTER);
+		textArea.setLineWrap(true);
+		JScrollPane scroll=new JScrollPane(textArea);
+		contentPane.add(scroll, BorderLayout.CENTER);
+		
 		setVisible(true);
 	}
 

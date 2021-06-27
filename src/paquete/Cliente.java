@@ -15,6 +15,7 @@ public class Cliente{
 	private Socket socket;
 	private ObjectInputStream entrada;
 	private ObjectOutputStream salida;
+	private Lobby lobby;
 	
 
 	public Cliente(String nombre,String ip, int puerto) {
@@ -27,7 +28,7 @@ public class Cliente{
 			System.out.println("Error host desconocido");
 			e.printStackTrace();
 		} catch (IOException e) {
-			System.out.println("Error I/O en creacion de cliente");
+			System.out.println("Error en conexion con el servidor");
 			e.printStackTrace();
 		}
 	}

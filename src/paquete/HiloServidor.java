@@ -116,7 +116,7 @@ public class HiloServidor extends Thread {
 			salaActual = salas.get(i);
 		}
 
-		List<String> nombres = sala.getUsuariosConectados();
+		List<String> nombres = salaActual.getUsuariosConectados();
 		List<Long> tiempos = new ArrayList<Long>(nombres.size());
 		for (String n : nombres) {
 			tiempos.add(mapaNombresTiempos.get(n));
@@ -131,7 +131,7 @@ public class HiloServidor extends Thread {
 			String txtHoras=horas<10?("0"+horas):horas+"";
 			String txtMinutos=minutos<10?("0"+minutos+""):minutos+"";
 			String txtSegundos=segundos<10?("0"+segundos+""):segundos+"";
-			cad += nombres.get(j)+"->"+txtHoras + ":" + txtMinutos + ":" + txtSegundos+"\n";
+			cad += nombres.get(j)+"➡"+txtHoras + ":" + txtMinutos + ":" + txtSegundos+"\n";
 		}
 		MensajeACliente msjCliente=new MensajeACliente(cad,6,salaActual);
 		Socket socket=mapaNombreSocket.get(mensaje.getMensaje());

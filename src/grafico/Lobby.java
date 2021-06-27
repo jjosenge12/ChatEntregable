@@ -3,6 +3,7 @@ package grafico;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -19,6 +21,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
@@ -30,6 +33,7 @@ import paquete.Cliente;
 import paquete.MensajeACliente;
 import paquete.MensajeAServidor;
 import paquete.Sala;
+import java.awt.Toolkit;
 
 
 public class Lobby extends JFrame {
@@ -116,9 +120,10 @@ public class Lobby extends JFrame {
 		});
 		listaSalas.setEnabled(false);
 		listaSalas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		contentPane.add(listaSalas, BorderLayout.CENTER);
-
 		listaSalas.setModel(listModel);
+		JScrollPane scroll=new JScrollPane(listaSalas);
+		contentPane.add(scroll, BorderLayout.CENTER);
+
 
 		panelBordeDerecho = new JPanel();
 		panelBordeDerecho.setBorder(new LineBorder(new Color(0, 0, 0)));
@@ -205,8 +210,10 @@ public class Lobby extends JFrame {
 	}
 
 	protected void desconectarse() {
-		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), null, 0);
-		cliente.enviarMensaje(msj);
+		if(cliente!=null) {
+			MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), null, 0);
+			cliente.enviarMensaje(msj);			
+		}
 	}
 
 	public void cerrarSala(Sala sala) {
@@ -312,15 +319,7 @@ public class Lobby extends JFrame {
 		}
 		
 	}
-//
-//	public void verTiempoSesion(SalaChat salaChat) {
-//		int i=0;
-//		Sala sala=salas.get(i);
-//		while(true) {
-//			
-//		}
-//		
-//	}
+
 
 	public void recibirTiempos(MensajeACliente mensaje) {
 		Sala sala=mensaje.getSala();
