@@ -2,7 +2,9 @@ package paquete;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class Sala implements Serializable {
@@ -10,23 +12,29 @@ public class Sala implements Serializable {
 	private static final long serialVersionUID = 1238067019847995537L;
 	private String nombreSala;
 	private List<String> usuariosConectados;
+	private Map<String,Long> tiempoUsuarios;
+	private boolean privada;
 
-	public Sala(String nombreSala) {
+	public Sala(String nombreSala,boolean privada) {
 		this.nombreSala = nombreSala;
 		this.usuariosConectados = new ArrayList<String>();
+		this.tiempoUsuarios=new HashMap<String,Long>();
+		this.privada=privada;
 	}
 
 	public String getNombreSala() {
 		return nombreSala;
 	}
 
-	public void agregarUsuario(String nombreCliente) {
+	public void agregarUsuario(String nombreCliente, long tiempoInicioSesion) {
 		usuariosConectados.add(nombreCliente);
+		tiempoUsuarios.put(nombreCliente, tiempoInicioSesion);
 	}
 
 
 	public void eliminarUsuario(String nombreUsuario) {
 		usuariosConectados.remove(nombreUsuario);
+		tiempoUsuarios.remove(nombreUsuario);
 	}
 
 	public int getCantUsuarios() {
@@ -67,6 +75,13 @@ public class Sala implements Serializable {
 
 	public List<String> getUsuariosConectados() {
 		return usuariosConectados;
+	}
+	
+	public Map<String, Long> getTiempoUsuarios() {
+		return tiempoUsuarios;
+	}
+	public boolean isPrivada() {
+		return privada;
 	}
 
 }

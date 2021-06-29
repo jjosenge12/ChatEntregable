@@ -1,4 +1,7 @@
-tipos de mensaje ( que recibe el servidor)
+
+Se ejecuta primero el servidor y luego el cliente.
+
+tipos de mensaje que RECIBE el servidor
 	0 desconexion
 	1 recibir datos del cliente
 	2 agregar sala
@@ -7,8 +10,11 @@ tipos de mensaje ( que recibe el servidor)
 	5 salir de sala
 	6 recibir mensaje
 	7 pedir tiempos de sesion
+	8 enviar lista de usuarios sala
+	9 crear sala privada
+	10 salir de sala privada
 
-tipos de mensaje a cliente ( que recibe el cliente)
+tipos de mensaje que RECIBE el cliente
 	0 conexion
 	1 enviar datos al servidor
 	2 actualizar salas
@@ -16,3 +22,7 @@ tipos de mensaje a cliente ( que recibe el cliente)
 	4 salir de sala
 	5 recibir mensaje
 	6 recibir tiempos de sesion
+	7 recibir lista usuarios de sala
+	8 sala privada creada
+	9 error ya existe sala
+	10 error ya existe sala con ese nombre

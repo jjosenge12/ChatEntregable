@@ -3,16 +3,16 @@ package grafico;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.GridLayout;
-import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.DefaultListModel;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -33,8 +33,7 @@ import paquete.Cliente;
 import paquete.MensajeACliente;
 import paquete.MensajeAServidor;
 import paquete.Sala;
-import java.awt.Toolkit;
-
+import paquete.Servidor;
 
 public class Lobby extends JFrame {
 
@@ -42,6 +41,8 @@ public class Lobby extends JFrame {
 	private JPanel contentPane;
 	private JButton btnCrearSala;
 	private JList<String> listaSalas;
+	private Map<String, Sala> mapaSalas;
+	private Map<String, SalaChat> mapaSalasAbiertas;
 	private DefaultListModel<String> listModel = new DefaultListModel<String>();
 	private Cliente cliente;
 	private JMenuItem menuItemConectarse;
@@ -54,8 +55,9 @@ public class Lobby extends JFrame {
 
 	private JTextPane textAreaInfoSala;
 	private List<SalaChat> salasAbiertas;
+//	private List<SalaChat> salasPrivadas;
 
-	private List<Sala> salas;
+//	private List<Sala> salas;
 
 	/**
 	 * Create the frame.
@@ -69,8 +71,9 @@ public class Lobby extends JFrame {
 		});
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
-		salas = new ArrayList<Sala>();
+//		salas = new ArrayList<Sala>();
 		salasAbiertas = new ArrayList<SalaChat>();
+//		salasPrivadas = new ArrayList<SalaChat>();
 
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -121,9 +124,8 @@ public class Lobby extends JFrame {
 		listaSalas.setEnabled(false);
 		listaSalas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		listaSalas.setModel(listModel);
-		JScrollPane scroll=new JScrollPane(listaSalas);
+		JScrollPane scroll = new JScrollPane(listaSalas);
 		contentPane.add(scroll, BorderLayout.CENTER);
-
 
 		panelBordeDerecho = new JPanel();
 		panelBordeDerecho.setBorder(new LineBorder(new Color(0, 0, 0)));
@@ -163,6 +165,8 @@ public class Lobby extends JFrame {
 		textAreaInfoSala.setEditable(false);
 		panelInfoSala.add(textAreaInfoSala);
 		setVisible(true);
+		mapaSalas = new HashMap<String, Sala>();
+		mapaSalasAbiertas = new HashMap<String, SalaChat>();
 	}
 
 	protected void borrarSala() {
@@ -170,36 +174,31 @@ public class Lobby extends JFrame {
 		Sala salaAEliminar = null;
 
 		if (nombreSalaElegida != null) {
-			int i = 0;
-			salaAEliminar = salas.get(i);
-
-			while (!salaAEliminar.getNombreSala().equals(nombreSalaElegida)) {
-				i++;
-				salaAEliminar = salas.get(i);
-			}
+			salaAEliminar = mapaSalas.get(nombreSalaElegida);
 			if (salaAEliminar.getCantUsuarios() == 0) {
 				MensajeAServidor msj = new MensajeAServidor(null, salaAEliminar, 3);
 				cliente.enviarMensaje(msj);
 			} else {
-				JOptionPane.showMessageDialog(this, "Tiene que haber 0 usuarios en la sala para eliminarla", "No se puede borrar la sala", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(this, "Tiene que haber 0 usuarios en la sala para eliminarla",
+						"No se puede borrar la sala", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
-	
+
 	private void conectarse() {
-		String respuesta=JOptionPane.showInputDialog(this, "Ingrese nombre de usuario:", "");
-		if(respuesta!=null && !respuesta.equals("")) {
-			crearUsuario(respuesta);			
+		String respuesta = JOptionPane.showInputDialog(this, "Ingrese nombre de usuario:", "");
+		if (respuesta != null && !respuesta.equals("")) {
+			crearUsuario(respuesta);
 		}
 	}
 
 	public void crearUsuario(String nombreCliente) {
-		cliente = new Cliente(nombreCliente, "localhost", 50000);
+		cliente = new Cliente(nombreCliente, "localhost", 50000,this);
 		cliente.inicializarHiloCliente(this);
 	}
 
 	public void activarBotones() {
-		setTitle("Lobby - " + cliente.getNombre());
+		setTitle("Usuario:" + cliente.getNombre() + "- Lobby");
 		btnCrearSala.setEnabled(true);
 		listaSalas.setEnabled(true);
 		menuItemConectarse.setEnabled(false);
@@ -209,38 +208,41 @@ public class Lobby extends JFrame {
 		btnDesconexion.setEnabled(true);
 	}
 
-	protected void desconectarse() {
-		if(cliente!=null) {
+	public void desconectarse() {
+		if (cliente != null) {
+			for (SalaChat sala : salasAbiertas) {
+				sala.dispose();
+			}
 			MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), null, 0);
-			cliente.enviarMensaje(msj);			
+			cliente.enviarMensaje(msj);
+			System.exit(0);
 		}
 	}
 
 	public void cerrarSala(Sala sala) {
-		SalaChat salaARemover = null;
-		int i = 0;
 		if (salasAbiertas.size() > 0) {
-			salaARemover = salasAbiertas.get(i);
-			while (!salaARemover.getNombreSala().equals(sala.getNombreSala())) {
-				i++;
-				salaARemover = salasAbiertas.get(i);
-			}
+			SalaChat salaARemover = mapaSalasAbiertas.get(sala.getNombreSala());
 			salasAbiertas.remove(salaARemover);
+			mapaSalasAbiertas.remove(sala.getNombreSala());
+			if(sala.isPrivada()) {
+				mapaSalas.remove(salaARemover.getNombreSala());
+				if(salaARemover!=null) {
+					salaARemover.dispose();
+				}
+			}
 		}
 
 	}
-
-
 
 	public void enviarMensaje(MensajeAServidor mensaje) {
 		cliente.enviarMensaje(mensaje);
 	}
 
 	protected void ingresarNombreSalaACrear() {
-		String respuesta=JOptionPane.showInputDialog(this, "Ingrese nombre de sala:", "");
-		if(respuesta!=null && !respuesta.equals("")) {
-			Sala sala=new Sala(respuesta);
-			MensajeAServidor msj=new MensajeAServidor(null,sala,2);
+		String respuesta = JOptionPane.showInputDialog(this, "Ingrese nombre de sala:", "");
+		if (respuesta != null && !respuesta.equals("")) {
+			Sala sala = new Sala(respuesta,false);
+			MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 2);
 			cliente.enviarMensaje(msj);
 		}
 	}
@@ -248,11 +250,7 @@ public class Lobby extends JFrame {
 	public void mostrarInfoSala() {
 		int cantUsuarios = 0;
 		String salaElegida = listaSalas.getSelectedValue();
-		int i = 0;
-		Sala sala = null;
-		while (!(sala = salas.get(i)).getNombreSala().equals(salaElegida)) {
-			i++;
-		}
+		Sala sala = mapaSalas.get(salaElegida);
 		cantUsuarios = sala.getCantUsuarios();
 		textAreaInfoSala.setText("Informacion de la sala:\n Conectados:" + cantUsuarios);
 	}
@@ -261,39 +259,31 @@ public class Lobby extends JFrame {
 		String salaElegida = listaSalas.getSelectedValue();
 
 		if (salaElegida != null) {
-			int cantSalasAbiertas = salasAbiertas.size();
-			if (cantSalasAbiertas < 3) {
-				boolean abierta = false;
-				for (int i = 0; i < cantSalasAbiertas; i++) {
-					SalaChat salaAbierta = salasAbiertas.get(i);
-					if (salaAbierta.getNombreSala().equals(salaElegida)) {
-						abierta = true;
-					}
-				}
+			boolean puedeAbrir = verificarCantidadSalas();
+			if (puedeAbrir) {
+				boolean abierta = isSalaAbierta(salaElegida);
 				if (abierta == false) {
-					int i = 0;
-					Sala sala = null;
-					while (i < salas.size() && !(sala = salas.get(i)).getNombreSala().equals(salaElegida)) {
-						i++;
-					}
+					Sala sala = mapaSalas.get(salaElegida);
 					MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 4);
 					cliente.enviarMensaje(msj);
-				} else {
-					JOptionPane.showMessageDialog(this, "Esa sala ya esta abierta", "Sala abierta", JOptionPane.INFORMATION_MESSAGE);
 				}
-			} else {
-				JOptionPane.showMessageDialog(this, "Se pueden abrir 3 salas como maximo", "Cantidad de salas abiertas maximas", JOptionPane.WARNING_MESSAGE);
+
 			}
 		}
 	}
 
 	public void abrirSala(Sala sala) {
-		salasAbiertas.add(new SalaChat(sala,cliente));
+		SalaChat salaChat = new SalaChat(sala, cliente);
+		salasAbiertas.add(salaChat);
+		mapaSalasAbiertas.put(sala.getNombreSala(), salaChat);
 		mostrarInfoSala();
 	}
 
 	public void actualizarSalas(List<Sala> listaSalasActualizada) {
-		salas = listaSalasActualizada;
+		mapaSalas.clear();
+		for (Sala sala : listaSalasActualizada) {
+			mapaSalas.put(sala.getNombreSala(), sala);
+		}
 		listModel.clear();
 		for (Sala s : listaSalasActualizada) {
 			listModel.addElement(s.getNombreSala());
@@ -301,35 +291,62 @@ public class Lobby extends JFrame {
 	}
 
 	public void enviarDatosAlServidor() {
-		MensajeAServidor msj=new MensajeAServidor(cliente.getNombre(),null,1);
+		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), null, 1);
 		cliente.enviarMensaje(msj);
 	}
 
 	public void recibirMensaje(MensajeACliente mensaje) {
-		Sala salaMensaje=mensaje.getSala();
-		int i = 0;
+		Sala salaMensaje = mensaje.getSala();
 		if (salasAbiertas.size() > 0) {
-			SalaChat salaAbiertaActual;
-			salaAbiertaActual = salasAbiertas.get(i);
-			while (!salaAbiertaActual.getNombreSala().equals(salaMensaje.getNombreSala())) {
-				salaAbiertaActual = salasAbiertas.get(i);
-				i++;
-			}
+			SalaChat salaAbiertaActual = mapaSalasAbiertas.get(salaMensaje.getNombreSala());
 			salaAbiertaActual.mostrarMensaje(mensaje.getMensaje());
 		}
-		
+
 	}
 
-
 	public void recibirTiempos(MensajeACliente mensaje) {
-		Sala sala=mensaje.getSala();
-		int i=0;
-		SalaChat salaChat=salasAbiertas.get(i);
-		while(!salaChat.getNombreSala().equals(sala.getNombreSala())) {
-			i++;
-			salaChat=salasAbiertas.get(i);
-		}
+		Sala sala = mensaje.getSala();
+		SalaChat salaChat = mapaSalasAbiertas.get(sala.getNombreSala());
 		salaChat.mostrarTiempos(mensaje.getMensaje());
+	}
+
+	public void recibirListaUsuarios(MensajeACliente mensaje) {
+		Sala sala = mensaje.getSala();
+		SalaChat salaChat = mapaSalasAbiertas.get(sala.getNombreSala());
+		salaChat.mostrarListaUsuarios(mensaje.getMensaje());
+	}
+
+	public void salaPrivadaCreada(MensajeACliente mensaje) {
+		SalaChat salaPrivada = new SalaChat(mensaje.getSala(), cliente);
+
+		salasAbiertas.add(salaPrivada);
+		mapaSalas.put(salaPrivada.getName(), mensaje.getSala());
+		mapaSalasAbiertas.put(salaPrivada.getNombreSala(), salaPrivada);
+	}
+
+	public void mostrarErrorPorPantalla(String descripcion, String titulo) {
+		JOptionPane.showMessageDialog(this, descripcion, titulo, JOptionPane.WARNING_MESSAGE);
+	}
+
+	public boolean verificarCantidadSalas() {
+
+		int cantSalasAbiertas = salasAbiertas.size();
+		if (cantSalasAbiertas < 3) {
+			return true;
+		} else {
+			JOptionPane.showMessageDialog(this, "Se pueden abrir 3 salas como maximo",
+					"Cantidad de salas abiertas maximas", JOptionPane.WARNING_MESSAGE);
+			return false;
+		}
+	}
+
+	public boolean isSalaAbierta(String salaElegida) {
+		boolean abierta = mapaSalasAbiertas.containsKey(salaElegida);
+		if (abierta) {
+			JOptionPane.showMessageDialog(this, "Esa sala ya esta abierta", "Sala abierta",
+					JOptionPane.INFORMATION_MESSAGE);
+		}
+		return abierta;
 	}
 
 }

@@ -13,76 +13,99 @@ public class HiloServidor extends Thread {
 	private Socket socket;
 	private List<Socket> sockets;
 	private Map<Socket, ObjectOutputStream> mapaSocketsObjectOuput;
-	private List<Sala> salas = new ArrayList<Sala>();
+	private List<Sala> salas;
 	private Map<String, Socket> mapaNombreSocket;
-	private Map<String, Long> mapaNombresTiempos;
+	private Map<String, Sala> mapaSalas;
 
-	public HiloServidor(Socket socket, List<Socket> sockets, Map<Socket, ObjectOutputStream> mapa, List<Sala> salas,
-			Map<String, Socket> mapaNombreSocket, Map<String, Long> mapaNombresTiempos) {
+	public HiloServidor(Socket socket, List<Socket> sockets, Map<Socket, ObjectOutputStream> mapa,
+			Map<String, Socket> mapaNombreSocket, List<Sala> salas, Map<String, Sala> mapaSalas) {
 		this.socket = socket;
 		this.sockets = sockets;
-		this.mapaSocketsObjectOuput = mapa;
 		this.salas = salas;
 		this.mapaNombreSocket = mapaNombreSocket;
-		this.mapaNombresTiempos = mapaNombresTiempos;
+		this.mapaSalas = mapaSalas;
+		this.mapaSocketsObjectOuput = mapa;
 	}
 
 	public void run() {
 		ObjectInputStream entrada = null;
 		ObjectOutputStream salida = null;
-		MensajeAServidor mensaje = null;
+		MensajeAServidor mensajeAServidor = null;
+		MensajeACliente mensajeACliente = null;
+		String nombreCliente = null;
+		// Recibo de datos del cliente
+		try {
+			entrada = new ObjectInputStream(socket.getInputStream());
+			salida = new ObjectOutputStream(socket.getOutputStream());
+			mensajeAServidor = (MensajeAServidor) entrada.readObject();
+			System.out.println("Hola");
+			nombreCliente = mensajeAServidor.getTexto();
+			if (mapaNombreSocket.containsKey(nombreCliente)) {
+				mensajeACliente = new MensajeACliente(null, null, -1);
+				salida.writeObject(mensajeACliente);
+				salida.flush();
+				salida.reset();
+				entrada.close();
+				salida.close();
+				socket.close();
+				return;
+			}
+		} catch (IOException | ClassNotFoundException e1) {
+			e1.printStackTrace();
+		}
+		mapaNombreSocket.put(nombreCliente, socket);
 
 		try {
-			salida = new ObjectOutputStream(socket.getOutputStream());
 			mapaSocketsObjectOuput.put(socket, salida);
 			/*
 			 * A cada socket le pertenece un ObjectOutputStream ya que si se crean nuevos
 			 * ObjectOutputStream, estos insertan un header en el OutputStream y dificulta
 			 * la recepcion de mensajes por parte del cliente.
 			 */
-			MensajeACliente msj = new MensajeACliente(null, null, 0);// Se le envia un mensaje 0 al cliente para
-																		// habilitar su interfaz.
-			salida.writeObject(msj);
-			salida.flush();
-			salida.reset();
-			msj = new MensajeACliente(null, null, 1);// Se le piden datos de usuario al cliente.
-			salida.writeObject(msj);
-			salida.flush();
-			salida.reset();
 
-			entrada = new ObjectInputStream(socket.getInputStream());
+			// Se le envia un mensaje 0 al cliente para habilitar su interfaz.
+			mensajeACliente = new MensajeACliente(null, null, 0);
+			salida.writeObject(mensajeACliente);
+			salida.flush();
+			salida.reset();
+			actualizarSalas();
 			int tipoMensaje = 1;
 
 			while (tipoMensaje != 0) {// El cliente envia un 0 para desconectarse
-				mensaje = (MensajeAServidor) entrada.readObject();
-				tipoMensaje = mensaje.getTipo();
+				mensajeAServidor = (MensajeAServidor) entrada.readObject();
+				tipoMensaje = mensajeAServidor.getTipo();
 
 				switch (tipoMensaje) {
-				case 1:// El cliente envia sus datos por un mensaje tipo 1
-					mapaNombreSocket.put(mensaje.getMensaje(), socket);
-					break;
 				case 2:// El cliente crea una sala por un mensaje tipo 2
-					agregarSala(mensaje);
+					agregarSala(mensajeAServidor);
 					break;
 				case 3:// El cliente borra una sala por un mensaje tipo 3
-					quitarSala(mensaje);
+					quitarSala(mensajeAServidor);
 					break;
 				case 4:// El cliente se une a una sala por un mensaje tipo 4
-					unirseASala(mensaje);
+					unirseASala(mensajeAServidor);
 					break;
 				case 5:// El cliente sale de una sala por un mensaje tipo 5
-					salirDeSala(mensaje);
+					salirDeSala(mensajeAServidor);
 					break;
 				case 6:// El cliente envia un mensaje a una sala por un mensaje tipo 6
-					recibirMensaje(mensaje);
+					recibirMensaje(mensajeAServidor);
 					break;
 				case 7:// El cliente envia un mensaje a una sala por un mensaje tipo 6
-					recibirPedidoTiemposSesion(mensaje);
+					recibirPedidoTiemposSesion(mensajeAServidor);
+					break;
+				case 8://Se envia al cliente la lista de usuarios en la sala
+					enviarListaUsuariosSala(mensajeAServidor);
+					break;
+				case 9:// se crea la sala privada y se une a los usuarios
+					crearSalaPrivada(mensajeAServidor);
+					break;
+				case 10:// cuando un usuario sale de la sala privada, se quita al otro.
+					salirSalaPrivada(mensajeAServidor);
 					break;
 				}
 				if (tipoMensaje != 0) {
-					actualizarSalas();// Al final de leer un mensaje se actualizan las salas de todos los clientes
-										// para evitar desincronizacion
+					actualizarSalas();// Se actualizan las salas en cada ciclo.
 				}
 
 			}
@@ -91,12 +114,12 @@ public class HiloServidor extends Thread {
 			e.printStackTrace();
 		}
 		try {// Desconexion del cliente del servidor
-			MensajeACliente msj = new MensajeACliente(null, null, -1);
-			salida.writeObject(msj);
+			mensajeACliente = new MensajeACliente(null, null, -1);
+			salida.writeObject(mensajeACliente);
 			entrada.close();
 			salida.close();
 			mapaSocketsObjectOuput.remove(socket);
-			mapaNombreSocket.remove(mensaje.getMensaje());
+			mapaNombreSocket.remove(mensajeAServidor.getTexto());
 			sockets.remove(socket);
 			socket.close();
 		} catch (IOException e) {
@@ -106,156 +129,154 @@ public class HiloServidor extends Thread {
 
 	}
 
-	private void recibirPedidoTiemposSesion(MensajeAServidor mensaje) {
-		ObjectOutputStream salida;
-		Sala sala = mensaje.getSala();
-		int i = 0;
-		Sala salaActual = salas.get(i);
-		while (!salaActual.equals(sala)) {
-			i++;
-			salaActual = salas.get(i);
-		}
+	private void salirSalaPrivada(MensajeAServidor mensaje) {
+		String nombreSala = mensaje.getSala().getNombreSala();
+		Sala sala = mapaSalas.get(nombreSala);
+		if (sala != null) {
+			mapaSalas.remove(nombreSala);
+			List<String> clientes = sala.getUsuariosConectados();
+			// mensaje tipo 4:saca al usuario de la sala
+			MensajeACliente msj = new MensajeACliente(null, 4, sala);
+			for (String usuario : clientes) {
+				enviarMensajeAUsuario(msj, usuario);
+			}
 
-		List<String> nombres = salaActual.getUsuariosConectados();
-		List<Long> tiempos = new ArrayList<Long>(nombres.size());
-		for (String n : nombres) {
-			tiempos.add(mapaNombresTiempos.get(n));
 		}
-		Long tiempoActual = System.currentTimeMillis();
-		String cad = "";
-		for (int j = 0; j < nombres.size(); j++) {
-			Long tiempoInicial = tiempos.get(j);
-			int horas = (int) ((tiempoActual - tiempoInicial) / 3600000);
-			int minutos = (int) (((tiempoActual - tiempoInicial) % 3600000) / 60000);
-			int segundos = (int) ((((tiempoActual - tiempoInicial) % 3600000) % 60000) / 1000);
-			String txtHoras=horas<10?("0"+horas):horas+"";
-			String txtMinutos=minutos<10?("0"+minutos+""):minutos+"";
-			String txtSegundos=segundos<10?("0"+segundos+""):segundos+"";
-			cad += nombres.get(j)+"➡"+txtHoras + ":" + txtMinutos + ":" + txtSegundos+"\n";
-		}
-		MensajeACliente msjCliente=new MensajeACliente(cad,6,salaActual);
-		Socket socket=mapaNombreSocket.get(mensaje.getMensaje());
-		salida=mapaSocketsObjectOuput.get(socket);
+	}
+
+	private void enviarMensajeAUsuario(MensajeACliente msj, String usuario) {
+		Socket socket = mapaNombreSocket.get(usuario);
+		ObjectOutputStream salida = mapaSocketsObjectOuput.get(socket);
 		try {
-			salida.writeObject(msjCliente);
-			salida.flush();
-			salida.reset();
+			if (salida != null) {
+				salida.writeObject(msj);
+				salida.flush();
+				salida.reset();
+			}
 		} catch (IOException e) {
+			System.out.println("Error en envio de mensaje a usuario");
 			e.printStackTrace();
+		}
+	}
+
+	private void crearSalaPrivada(MensajeAServidor mensaje) {
+		Sala sala = mensaje.getSala();
+		mapaSalas.put(sala.getNombreSala(), sala);
+
+		// mensaje tipo 8:crea la sala privada
+		List<String> usuarios = sala.getUsuariosConectados();
+		MensajeACliente msj = new MensajeACliente(null, 8, sala);
+		for (String usuario : usuarios) {
+			enviarMensajeAUsuario(msj, usuario);
 		}
 
 	}
 
-	private void recibirMensaje(MensajeAServidor mensajeServidor) {
-		ObjectOutputStream salida;
-		String nombreSala = mensajeServidor.getSala().getNombreSala();
-		Sala salaAux = null;
-		int i = 0;
-
-		// Se busca el nombre de la sala en la lista de salas
-		salaAux = salas.get(i);
-		while (!salaAux.getNombreSala().equals(nombreSala)) {
-			i++;
-			salaAux = salas.get(i);
+	private void enviarListaUsuariosSala(MensajeAServidor mensaje) {
+		String sala = mensaje.getSala().getNombreSala();
+		Sala salaActual = mapaSalas.get(sala);
+		List<String> usuarios = salaActual.getUsuariosConectados();
+		String cad = "";
+		for (String user : usuarios) {
+			cad += user + "\n";
 		}
+		// mensaje tipo 7:envia la lista de usuarios en la sala
+		MensajeACliente msj = new MensajeACliente(cad, 7, salaActual);
+		enviarMensajeAUsuario(msj, mensaje.getTexto());
+	}
+
+	private void recibirPedidoTiemposSesion(MensajeAServidor mensaje) {
+		String sala = mensaje.getSala().getNombreSala();
+		Sala salaActual = mapaSalas.get(sala);
+
+		List<String> usuarios = salaActual.getUsuariosConectados();
+		Map<String, Long> tiempos=salaActual.getTiempoUsuarios();
+		
+		String cad = "";
+		Long tiempoActual = System.currentTimeMillis();
+		for(String usuario:usuarios) {
+			Long tiempoInicial = tiempos.get(usuario);
+			int horas = (int) ((tiempoActual - tiempoInicial) / 3600000);
+			int minutos = (int) (((tiempoActual - tiempoInicial) % 3600000) / 60000);
+			int segundos = (int) ((((tiempoActual - tiempoInicial) % 3600000) % 60000) / 1000);
+			String txtHoras = horas < 10 ? ("0" + horas) : horas + "";
+			String txtMinutos = minutos < 10 ? ("0" + minutos + "") : minutos + "";
+			String txtSegundos = segundos < 10 ? ("0" + segundos + "") : segundos + "";
+			cad += usuario + "➡" + txtHoras + ":" + txtMinutos + ":" + txtSegundos + "\n";
+			
+		}
+		
+		// mensaje tipo 6:envia los tiempos de conexion
+		MensajeACliente msjCliente = new MensajeACliente(cad, 6, salaActual);
+		enviarMensajeAUsuario(msjCliente, mensaje.getTexto());
+	}
+
+	@SuppressWarnings("deprecation")
+	private void recibirMensaje(MensajeAServidor mensajeServidor) {
+		String nombreSala = mensajeServidor.getSala().getNombreSala();
+		Sala salaActual = mapaSalas.get(nombreSala);
 
 		// Se concatena la hora con el mensaje enviado por el cliente.
 		Date tiempo = new Date();
-		@SuppressWarnings("deprecation")
-		int horas=tiempo.getHours();
-		String txtHoras=horas<10?"0"+horas:""+horas;
-		int minutos=tiempo.getMinutes();
-		String txtMinutos=minutos<10?"0"+minutos:""+minutos;
-		String hora = "(" + txtHoras+ ":" + txtMinutos+ ")";
-		String mensaje = hora + mensajeServidor.getMensaje();
+		int horas = tiempo.getHours();
+		String txtHoras = horas < 10 ? "0" + horas : "" + horas;
+		int minutos = tiempo.getMinutes();
+		String txtMinutos = minutos < 10 ? "0" + minutos : "" + minutos;
+		String hora = "(" + txtHoras + ":" + txtMinutos + ")";
+		String mensaje = hora + mensajeServidor.getTexto();
 
-		MensajeACliente msjCliente = new MensajeACliente(mensaje, 5, salaAux);
-		List<Socket> socketsEnSala = new ArrayList<Socket>();
+		// mensaje tipo 5: envia mensaje a la sala.
+		MensajeACliente msjCliente = new MensajeACliente(mensaje, 5, salaActual);
 		List<String> usuariosEnSala = new ArrayList<String>();
-		usuariosEnSala = salaAux.getUsuariosConectados();
+		usuariosEnSala = salaActual.getUsuariosConectados();
 
-		// Se agregan los sockets pertenecientes a los usuarios conectados a la sala.
 		for (String usuario : usuariosEnSala) {
-			socketsEnSala.add(mapaNombreSocket.get(usuario));
-		}
-
-		try {
-			for (Socket envio : socketsEnSala) {
-				salida = mapaSocketsObjectOuput.get(envio);
-				salida.writeObject(msjCliente);
-				salida.flush();
-				salida.reset();
-
-			}
-		} catch (IOException e) {
-			System.out.println("Error en envio de mensaje HiloServidor");
-			e.printStackTrace();
+			enviarMensajeAUsuario(msjCliente, usuario);
 		}
 	}
 
 	private void salirDeSala(MensajeAServidor mensajeServidor) {
-		ObjectOutputStream salida = mapaSocketsObjectOuput.get(socket);
 		Sala sala = mensajeServidor.getSala();
-		Sala salaAActualizar = null;
-		int i = 0;
+		Sala salaActual = mapaSalas.get(sala.getNombreSala());
+		salaActual.eliminarUsuario(mensajeServidor.getTexto());
 
-		// Se busca el nombre de la sala en la lista de salas
-		while (!(salaAActualizar = salas.get(i)).getNombreSala().equals(sala.getNombreSala())) {
-			i++;
-		}
-		salaAActualizar.eliminarUsuario(mensajeServidor.getMensaje());
-		mapaNombresTiempos.remove(mensajeServidor.getMensaje());
-
-		MensajeACliente msj = new MensajeACliente(null, 4, salaAActualizar);
-		try {
-			salida.writeObject(msj);
-			salida.flush();
-			salida.reset();
-		} catch (IOException e) {
-			System.out.println("Error envio mensaje salirDeSala");
-			e.printStackTrace();
-		}
+		// mensaje tipo 4: saca al usuario de la sala
+		MensajeACliente msj = new MensajeACliente(null, 4, salaActual);
+		enviarMensajeAUsuario(msj, mensajeServidor.getTexto());
 
 	}
 
 	private void unirseASala(MensajeAServidor mensajeServidor) {
-		ObjectOutputStream salida = mapaSocketsObjectOuput.get(socket);
 		Sala sala = mensajeServidor.getSala();
-		Sala salaAActualizar = null;
-		int i = 0;
-
-		// Se busca el nombre de la sala en la lista de salas
-		while (!(salaAActualizar = salas.get(i)).getNombreSala().equals(sala.getNombreSala())) {
-			i++;
-		}
-		salaAActualizar.agregarUsuario(mensajeServidor.getMensaje());
+		Sala salaActual = mapaSalas.get(sala.getNombreSala());
 		long tiempoInicioSesion = System.currentTimeMillis();
-		mapaNombresTiempos.put(mensajeServidor.getMensaje(), tiempoInicioSesion);
+		salaActual.agregarUsuario(mensajeServidor.getTexto(),tiempoInicioSesion);
 
-		MensajeACliente msj = new MensajeACliente(null, 3, salaAActualizar);
-		try {
-			salida.writeObject(msj);
-			salida.flush();
-			salida.reset();
-		} catch (IOException e) {
-			System.out.println("Error envio mensaje unirseASala");
-			e.printStackTrace();
-		}
+		// mensaje tipo 3: une al usuario a la sala
+		MensajeACliente msj = new MensajeACliente(null, 3, salaActual);
+		enviarMensajeAUsuario(msj, mensajeServidor.getTexto());
 
 	}
 
 	private void quitarSala(MensajeAServidor mensaje) {
 		Sala sala = mensaje.getSala();
 		salas.remove(sala);
+		mapaSalas.remove(sala.getNombreSala());
 	}
 
 	private void agregarSala(MensajeAServidor mensaje) {
 		Sala sala = mensaje.getSala();
-		salas.add(sala);
+		if (!mapaSalas.containsKey(sala.getNombreSala())) {
+			salas.add(sala);
+			mapaSalas.put(sala.getNombreSala(), sala);
+		} else {
+			MensajeACliente msj = new MensajeACliente(null, null, 12);
+			enviarMensajeAUsuario(msj, mensaje.getTexto());
+		}
 	}
 
 	private void actualizarSalas() {
-
+		// mensaje tipo 2: actualizacion de salas
 		MensajeACliente msj = new MensajeACliente(null, salas, 2);
 		enviarMensajeATodosLosSockets(msj);
 

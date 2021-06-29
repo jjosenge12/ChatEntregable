@@ -14,17 +14,18 @@ public class Servidor {
 	ServerSocket server;
 	List<Socket> sockets;
 	List<Sala> salas;
-	Map<Socket,ObjectOutputStream> mapaSocketsObjectOuput;
-	Map<String,Socket> mapaNombreSocket;
-	Map<String, Long> mapaNombresTiempos;
+
+	Map<String, Sala> mapaSalas;
+	Map<Socket, ObjectOutputStream> mapaSocketsObjectOuput;
+	Map<String, Socket> mapaNombreSocket;
 
 	public Servidor(int puerto) {
 		this.puerto = puerto;
 		this.sockets = new ArrayList<Socket>();
-		this.salas=new ArrayList<Sala>();
-		this.mapaSocketsObjectOuput=new HashMap<Socket,ObjectOutputStream>();
-		this.mapaNombreSocket=new HashMap<String,Socket>();
-		this.mapaNombresTiempos=new HashMap<String,Long>();
+		this.salas = new ArrayList<Sala>();
+		this.mapaSalas = new HashMap<String, Sala>();
+		this.mapaNombreSocket = new HashMap<String, Socket>();
+		this.mapaSocketsObjectOuput = new HashMap<Socket, ObjectOutputStream>();
 
 		try {
 			server = new ServerSocket(puerto);
@@ -40,7 +41,7 @@ public class Servidor {
 				Socket socket = server.accept();
 				System.out.println("Cliente conectado");
 				sockets.add(socket);
-				new HiloServidor(socket, sockets,mapaSocketsObjectOuput,salas,mapaNombreSocket,mapaNombresTiempos).start();
+				new HiloServidor(socket, sockets, mapaSocketsObjectOuput, mapaNombreSocket, salas, mapaSalas).start();
 			}
 
 		} catch (IOException e) {

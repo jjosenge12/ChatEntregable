@@ -11,6 +11,9 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -39,6 +42,7 @@ public class SalaChat extends JFrame {
 	private String nombre;
 	private JButton btnEnviar;
 	private Sala sala;
+	private boolean salaPrivada;
 
 	/**
 	 * Create the frame.
@@ -48,16 +52,21 @@ public class SalaChat extends JFrame {
 	public SalaChat(Sala sala, Cliente cliente) {
 		this.sala = sala;
 		this.cliente = cliente;
+		this.salaPrivada = sala.isPrivada();
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosed(WindowEvent e) {
 				cerrarSala();
 			}
 		});
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		if (salaPrivada) {
+			setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		} else {
+			setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		}
 		setBounds(100, 100, 450, 300);
 		this.nombre = sala.getNombreSala();
-		this.setTitle(nombre + " - " + cliente.getNombre());
+		this.setTitle("Usuario:" + cliente.getNombre() + "- Nombre de la sala:" + nombre);
 
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -88,6 +97,16 @@ public class SalaChat extends JFrame {
 			}
 		});
 		menuListaConexion.add(mntmNewMenuItem_1);
+		if (salaPrivada == false) {
+			JMenuItem mntmNewMenuItem_2 = new JMenuItem("Crear sala privada...");
+			mntmNewMenuItem_2.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					crearSalaPrivada();
+				}
+			});
+			menuListaConexion.add(mntmNewMenuItem_2);
+
+		}
 		menuListaConexion.add(menuItemSalirSala);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -123,10 +142,18 @@ public class SalaChat extends JFrame {
 		textArea = new JTextArea();
 		textArea.setEditable(false);
 		textArea.setLineWrap(true);
-		JScrollPane scroll=new JScrollPane(textArea);
+		textArea.setText("Has ingresado a la sala"
+				+ (salaPrivada ? "\nEsta sala se cerrara si uno de los dos usuarios sale de ella." : ""));
+		JScrollPane scroll = new JScrollPane(textArea);
 		contentPane.add(scroll, BorderLayout.CENTER);
-		
+		setLocationRelativeTo(cliente.getLobby());
 		setVisible(true);
+	}
+
+	protected void crearSalaPrivada() {
+		// mensaje tipo 8:pide la lista de usuarios al servidor
+		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 8);
+		cliente.enviarMensaje(msj);
 	}
 
 	protected void guardarConversacion() {
@@ -141,7 +168,7 @@ public class SalaChat extends JFrame {
 			PrintWriter pw = null;
 
 			try {
-				fr = new FileWriter(ruta+".txt");
+				fr = new FileWriter(ruta + ".txt");
 				pw = new PrintWriter(fr);
 				pw.print(texto);
 			} catch (Exception e) {
@@ -159,12 +186,16 @@ public class SalaChat extends JFrame {
 	}
 
 	protected void verTiemposSesion() {
+		// mensaje tipo 7:pide la lista de tiempos al servidor
 		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 7);
 		cliente.enviarMensaje(msj);
 	}
 
 	protected void cerrarSala() {
-		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 5);
+		// mensaje tipo 5:salir de sala
+		// mensaje tipo 10:salir de sala privada
+		int tipoMensaje = salaPrivada ? 10 : 5;
+		MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, tipoMensaje);
 		cliente.enviarMensaje(msj);
 	}
 
@@ -172,6 +203,7 @@ public class SalaChat extends JFrame {
 		String msj = textFieldEscrituraMensaje.getText();
 		if (!msj.equals("")) {
 			msj = cliente.getNombre() + ":" + textFieldEscrituraMensaje.getText();
+			// mensaje tipo 6:envio de mensaje
 			MensajeAServidor msjAServidor = new MensajeAServidor(msj, sala, 6);
 			cliente.enviarMensaje(msjAServidor);
 			textFieldEscrituraMensaje.setText("");
@@ -219,6 +251,46 @@ public class SalaChat extends JFrame {
 
 	public void mostrarTiempos(String mensaje) {
 		JOptionPane.showMessageDialog(this, mensaje, "Tiempos de sesion", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	public void mostrarListaUsuarios(String mensaje) {
+		Lobby lobby = cliente.getLobby();
+		boolean puedeCrear = lobby.verificarCantidadSalas();
+
+		if (!puedeCrear) {
+			return;
+		}
+
+		String[] opciones = mensaje.split("\n");
+		if (opciones.length > 1) {
+			List<String> listaOpciones = new LinkedList<String>(Arrays.asList(opciones));
+			String nombreCliente = cliente.getNombre();
+			listaOpciones.remove(nombreCliente);
+			opciones = listaOpciones.toArray(new String[listaOpciones.size()]);
+			String resp = (String) JOptionPane.showInputDialog(null, "Seleccione usuario:", "Crear sala privada",
+					JOptionPane.DEFAULT_OPTION, null, opciones, opciones[0]);
+			if (resp != null) {
+				String[] participantes = { cliente.getNombre(), resp };
+				String nombreSalaACrear = "Sala privada (" + participantes[0] + ";" + participantes[1] + ")";
+				String nombreSalaACrearAlternativo = "Sala privada (" + participantes[1] + ";" + participantes[0] + ")";
+				boolean salaAbierta1 = lobby.isSalaAbierta(nombreSalaACrear);
+				boolean salaAbierta2 = lobby.isSalaAbierta(nombreSalaACrearAlternativo);
+
+				if (salaAbierta1 || salaAbierta2) {
+					return;
+				}
+				// mensaje tipo 9:creacion de sala privada
+				Sala salaPrivada = new Sala(nombreSalaACrear, true);
+				long tiempoInicioSesion = System.currentTimeMillis();
+				salaPrivada.agregarUsuario(participantes[0], tiempoInicioSesion);
+				salaPrivada.agregarUsuario(participantes[1], tiempoInicioSesion);
+				MensajeAServidor msj = new MensajeAServidor(null, salaPrivada, 9);
+				cliente.enviarMensaje(msj);
+			}
+		} else {
+			JOptionPane.showMessageDialog(this, "No hay mas usuarios en la sala", "No se puede crear sala privada",
+					JOptionPane.WARNING_MESSAGE);
+		}
 	}
 
 }
