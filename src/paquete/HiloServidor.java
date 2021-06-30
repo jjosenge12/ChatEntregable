@@ -38,16 +38,18 @@ public class HiloServidor extends Thread {
 			entrada = new ObjectInputStream(socket.getInputStream());
 			salida = new ObjectOutputStream(socket.getOutputStream());
 			mensajeAServidor = (MensajeAServidor) entrada.readObject();
-			System.out.println("Hola");
 			nombreCliente = mensajeAServidor.getTexto();
+			//Si ya existe un usuario con ese nombre, desconecto al cliente
 			if (mapaNombreSocket.containsKey(nombreCliente)) {
-				mensajeACliente = new MensajeACliente(null, null, -1);
+				mensajeACliente = new MensajeACliente(null, null, -2);
 				salida.writeObject(mensajeACliente);
 				salida.flush();
 				salida.reset();
 				entrada.close();
 				salida.close();
+				sockets.remove(socket);
 				socket.close();
+				System.out.println("Cliente desconectado por nombre de usuario existente");
 				return;
 			}
 		} catch (IOException | ClassNotFoundException e1) {
@@ -122,6 +124,7 @@ public class HiloServidor extends Thread {
 			mapaNombreSocket.remove(mensajeAServidor.getTexto());
 			sockets.remove(socket);
 			socket.close();
+			System.out.println("Cliente desconectado normalmente");
 		} catch (IOException e) {
 			System.out.println("Error desconectando cliente");
 			e.printStackTrace();

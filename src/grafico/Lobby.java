@@ -55,9 +55,6 @@ public class Lobby extends JFrame {
 
 	private JTextPane textAreaInfoSala;
 	private List<SalaChat> salasAbiertas;
-//	private List<SalaChat> salasPrivadas;
-
-//	private List<Sala> salas;
 
 	/**
 	 * Create the frame.
@@ -71,9 +68,7 @@ public class Lobby extends JFrame {
 		});
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
-//		salas = new ArrayList<Sala>();
 		salasAbiertas = new ArrayList<SalaChat>();
-//		salasPrivadas = new ArrayList<SalaChat>();
 
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
@@ -193,7 +188,7 @@ public class Lobby extends JFrame {
 	}
 
 	public void crearUsuario(String nombreCliente) {
-		cliente = new Cliente(nombreCliente, "localhost", 50000,this);
+		cliente = new Cliente(nombreCliente, "localhost", 50000, this);
 		cliente.inicializarHiloCliente(this);
 	}
 
@@ -224,9 +219,9 @@ public class Lobby extends JFrame {
 			SalaChat salaARemover = mapaSalasAbiertas.get(sala.getNombreSala());
 			salasAbiertas.remove(salaARemover);
 			mapaSalasAbiertas.remove(sala.getNombreSala());
-			if(sala.isPrivada()) {
+			if (sala.isPrivada()) {
 				mapaSalas.remove(salaARemover.getNombreSala());
-				if(salaARemover!=null) {
+				if (salaARemover != null) {
 					salaARemover.dispose();
 				}
 			}
@@ -241,7 +236,7 @@ public class Lobby extends JFrame {
 	protected void ingresarNombreSalaACrear() {
 		String respuesta = JOptionPane.showInputDialog(this, "Ingrese nombre de sala:", "");
 		if (respuesta != null && !respuesta.equals("")) {
-			Sala sala = new Sala(respuesta,false);
+			Sala sala = new Sala(respuesta, false);
 			MensajeAServidor msj = new MensajeAServidor(cliente.getNombre(), sala, 2);
 			cliente.enviarMensaje(msj);
 		}
@@ -299,7 +294,7 @@ public class Lobby extends JFrame {
 		Sala salaMensaje = mensaje.getSala();
 		if (salasAbiertas.size() > 0) {
 			SalaChat salaAbiertaActual = mapaSalasAbiertas.get(salaMensaje.getNombreSala());
-			salaAbiertaActual.mostrarMensaje(mensaje.getMensaje());
+			salaAbiertaActual.mostrarMensaje(mensaje.getTexto());
 		}
 
 	}
@@ -307,13 +302,13 @@ public class Lobby extends JFrame {
 	public void recibirTiempos(MensajeACliente mensaje) {
 		Sala sala = mensaje.getSala();
 		SalaChat salaChat = mapaSalasAbiertas.get(sala.getNombreSala());
-		salaChat.mostrarTiempos(mensaje.getMensaje());
+		salaChat.mostrarTiempos(mensaje.getTexto());
 	}
 
 	public void recibirListaUsuarios(MensajeACliente mensaje) {
 		Sala sala = mensaje.getSala();
 		SalaChat salaChat = mapaSalasAbiertas.get(sala.getNombreSala());
-		salaChat.mostrarListaUsuarios(mensaje.getMensaje());
+		salaChat.mostrarListaUsuarios(mensaje.getTexto());
 	}
 
 	public void salaPrivadaCreada(MensajeACliente mensaje) {

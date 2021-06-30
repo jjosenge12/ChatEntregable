@@ -15,6 +15,8 @@ tipos de mensaje que RECIBE el servidor
 	10 salir de sala privada
 
 tipos de mensaje que RECIBE el cliente
+	-2 desconexion por nombre existente
+	-1 desconexion normal
 	0 conexion
 	1 enviar datos al servidor
 	2 actualizar salas

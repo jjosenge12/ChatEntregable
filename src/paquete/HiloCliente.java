@@ -22,10 +22,9 @@ public class HiloCliente extends Thread {
 		try {
 			entrada = new ObjectInputStream(socket.getInputStream());
 			int tipoMensaje=0;
-			while (tipoMensaje != -1) {// Se cierra el hilo con un mensaje del servidor de tipo 1
+			while (tipoMensaje != -1 && tipoMensaje!=-2) {// Se cierra el hilo con un mensaje del servidor de tipo 1
 				mensaje = (MensajeACliente) entrada.readObject();
 				tipoMensaje = mensaje.getTipo();
-				System.out.println("tipoMensaje:"+tipoMensaje);
 				switch (tipoMensaje) {
 				case 0:// 0:el cliente se conecto correctamente
 					clienteAceptado();
@@ -65,6 +64,10 @@ public class HiloCliente extends Thread {
 					//10: ya existe una sala con ese nombre.
 					mostrarErrorPorPantalla("Elija otro nombre de sala", "Error en creacion de sala");
 					break;
+				}
+				if(tipoMensaje==-2) {
+					mostrarErrorPorPantalla("Elija otro nombre de usuario", "Desconexion del servidor");
+					socket.close();
 				}
 				
 			}

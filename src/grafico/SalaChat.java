@@ -44,11 +44,6 @@ public class SalaChat extends JFrame {
 	private Sala sala;
 	private boolean salaPrivada;
 
-	/**
-	 * Create the frame.
-	 * 
-	 * @param sala
-	 */
 	public SalaChat(Sala sala, Cliente cliente) {
 		this.sala = sala;
 		this.cliente = cliente;

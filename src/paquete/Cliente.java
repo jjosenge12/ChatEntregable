@@ -36,12 +36,14 @@ public class Cliente{
 	}
 
 	public void enviarMensaje(MensajeAServidor mensaje) {
-		try {
-			salida.reset();
-			salida.writeObject(mensaje);
-		} catch (IOException e) {
-			System.out.println("Error en envio de mensaje cliente");
-			e.printStackTrace();
+		if(!socket.isClosed()) {
+			try {
+				salida.reset();
+				salida.writeObject(mensaje);
+			} catch (IOException e) {
+				System.out.println("Error en envio de mensaje cliente");
+				e.printStackTrace();
+			}			
 		}
 	}
 

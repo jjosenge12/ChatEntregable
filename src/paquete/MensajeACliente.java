@@ -9,23 +9,23 @@ public class MensajeACliente implements Serializable{
 
 
 	private static final long serialVersionUID = -3270450619107272291L;
-	String mensaje;
+	String texto;
 	List<Sala> listaSalas;
 	Sala sala;
 	int tipo;
 	
-	public MensajeACliente(String mensaje, List<Sala> salas, int tipo) {
-		this.mensaje = mensaje;
+	public MensajeACliente(String texto, List<Sala> salas, int tipo) {
+		this.texto = texto;
 		this.listaSalas = salas;
 		this.tipo = tipo;
 	}
-	public MensajeACliente(String mensaje, int tipo,Sala sala) {
-		this.mensaje = mensaje;
+	public MensajeACliente(String texto, int tipo,Sala sala) {
+		this.texto = texto;
 		this.sala = sala;
 		this.tipo = tipo;
 	}
-	public String getMensaje() {
-		return mensaje;
+	public String getTexto() {
+		return texto;
 	}
 	
 	public Sala getSala() {
@@ -42,7 +42,7 @@ public class MensajeACliente implements Serializable{
 	
 	@Override
 	public String toString() {
-		return "MensajeACliente [mensaje=" + mensaje + ", sala=" + sala + ", tipo=" + tipo + "]";
+		return "MensajeACliente [mensaje=" + texto + ", sala=" + sala + ", tipo=" + tipo + "]";
 	}
 	
 
